@@ -75,7 +75,7 @@ const BANKS = ['battery200', 'battery400', 'battery600'];
 // Only one member of each set may be on at a time.
 const EXCLUSIVE = [BANKS, SOLAR];
 // Solar and alternator charging are alternative approaches, not mixed.
-const INCOMPATIBLE = [[SOLAR, ['alternator']]];
+const INCOMPATIBLE = [];
 
 // Extra constraints that only apply when every id in `when` is selected.
 // Non-solar charging only supports one of microwave / cooktop / AC-heater.
