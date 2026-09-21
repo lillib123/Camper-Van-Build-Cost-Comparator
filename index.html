@@ -234,6 +234,9 @@ function render() {
 form.addEventListener('change', e => {
   const id = e.target.dataset.id;
   if (!id) return;
+  if (id === 'shoreCharger' && e.target.checked) {
+    document.querySelectorAll('#options input:checked').forEach(input => selected.add(input.dataset.id));
+  }
   if (e.target.checked) {
     (conflicts[id] || new Set()).forEach(x => selected.delete(x));
     selected.add(id);
