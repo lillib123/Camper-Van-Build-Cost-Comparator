@@ -47,10 +47,10 @@
 // constraint can choose between; EXCLUSIVE/INCOMPATIBLE below say which of
 // them can't be combined.
 const OPTIONS = [
+  { id: 'rooftopAcHeat',  name: 'Rooftop AC & heater combo',  price: 1200, group: 'Features', note: '12V DC',  load: 'heavy',  requiresOneOf: [['battery600']] },
   { id: 'microwave',      name: 'Microwave',                  price: 50,   group: 'Features', note: '110V AC', load: 'heavy',  requires: ['inverter3000'], requiresOneOf: [['battery400', 'battery600']] },
   { id: 'cooktop',        name: 'Electric cooktop',           price: 100,  group: 'Features', note: '110V AC', load: 'heavy',  requires: ['inverter3000'], requiresOneOf: [['battery400', 'battery600']] },
-  { id: 'rooftopAcHeat',  name: 'Rooftop AC & heater combo',  price: 1200, group: 'Features', note: '12V DC',  load: 'heavy',  requiresOneOf: [['battery600']] },
-  { id: 'toaster',        name: 'Toaster',                    price: 40,  group: 'Features', note: '110V AC',  load: 'heavy', requiresOneOf: [['battery400', 'battery600']] },
+  { id: 'toasterOven',    name: 'Toaster oven',               price: 100,  group: 'Features', note: '110V AC',  load: 'heavy', requiresOneOf: [['inverter3000'], ['battery400', 'battery600']] },
   { id: 'miniFridge',     name: 'Mini fridge',                price: 100,  group: 'Features', note: '12V DC',  load: 'medium', requiresOneOf: [['battery400', 'battery600']] },
   { id: 'tv',             name: 'TV',                         price: 50,  group: 'Features', note: '110V AC', load: 'medium', requiresOneOf: [['inverter1000', 'inverter3000'], ['battery200', 'battery400', 'battery600']] },
   { id: 'starlink',       name: 'Starlink Mini internet',     price: 200,  group: 'Features', note: '12V DC',  load: 'medium', requiresOneOf: [['battery200', 'battery400', 'battery600']] },
