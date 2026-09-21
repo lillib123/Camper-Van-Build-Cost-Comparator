@@ -25,6 +25,7 @@
            padding: 1rem; font-size: 1.2rem; font-weight: 600; }
   #breakdown { list-style: none; padding: 0; font-size: .9rem; }
   #breakdown li { display: flex; justify-content: space-between; padding: .15rem 0; }
+  #shore-notice { color: #94590a; background: #fdefd8; border: 1px solid #e8c98e; border-radius: 4px; padding: .6rem .75rem; }
 </style>
 </head>
 <body>
@@ -33,6 +34,7 @@
 <p><small>12V DC runs straight off the battery bank. 110V AC appliances need the inverter. Orange checkboxes were added automatically to support your choices.</small></p>
 
 <form id="options"></form>
+<p id="shore-notice" hidden>Heavy features will only be usable while plugged into a shore power station.</p>
 
 <h2>Breakdown</h2>
 <ul id="breakdown"></ul>
@@ -89,6 +91,7 @@ const RULES = [
 
 const byId = Object.fromEntries(OPTIONS.map(o => [o.id, o]));
 const form = document.getElementById('options');
+const shoreNotice = document.getElementById('shore-notice');
 const selected = new Set();
 
 const conflicts = {};
@@ -123,19 +126,27 @@ const domainMembers = d => OPTIONS.filter(o => o.domain === d).map(o => o.id);
 function resolve(relax) {
   const required = new Set();
   const allowed = {};   // domain -> Set of ids still permitted
+  const shoreOnly = selected.has('shoreCharger')
+    && !selected.has('alternator')
+    && !SOLAR.some(id => selected.has(id));
 
   const apply = spec => {
     for (const dep of spec.requires || []) {
+      if (shoreOnly && dep === 'inverter3000') continue;
       if (!required.has(dep)) { required.add(dep); apply(byId[dep]); }
     }
     for (const set of spec.requiresOneOf || []) {
+      if (shoreOnly && set.every(id => BANKS.includes(id))) {
+        allowed.battery = new Set(BANKS);
+        continue;
+      }
       const d = byId[set[0]].domain;
       const cur = allowed[d] || new Set(domainMembers(d));
       allowed[d] = new Set(set.filter(x => cur.has(x)));
     }
   };
   selected.forEach(id => apply(byId[id]));
-  RULES.filter(r => r.when.every(id => selected.has(id))).forEach(apply);
+  if (!shoreOnly) RULES.filter(r => r.when.every(id => selected.has(id))).forEach(apply);
 
   // Shore plus alternator charging keeps one size smaller bank topped up.
   if (relax && allowed.battery) {
@@ -180,6 +191,9 @@ function render() {
   if (onSet(state).has('shoreCharger') && onSet(state).has('alternator')) state = resolve(true);
   const { required, allowed } = state;
   const on = onSet(state);
+  shoreNotice.hidden = !selected.has('shoreCharger')
+    || selected.has('alternator')
+    || SOLAR.some(id => selected.has(id));
   const outOfRange = o => isOutOfRange(o, allowed);
   // Auto-picked options never block alternatives -- clicking one swaps the pick.
   const chosen = new Set([...on].filter(id => selected.has(id)));
