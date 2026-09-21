@@ -26,6 +26,8 @@
   #breakdown { list-style: none; padding: 0; font-size: .9rem; }
   #breakdown li { display: flex; justify-content: space-between; padding: .15rem 0; }
   #shore-notice { color: #94590a; background: #fdefd8; border: 1px solid #e8c98e; border-radius: 4px; padding: .6rem .75rem; }
+  .actions { display: flex; gap: .5rem; margin-bottom: 1rem; }
+  .actions button { padding: .4rem .7rem; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -33,6 +35,10 @@
 <p>Check the features you want. Required supporting equipment is selected and locked automatically.</p>
 <p><small>12V DC runs straight off the battery bank. 110V AC appliances need the inverter. Orange checkboxes were added automatically to support your choices.</small></p>
 
+<div class="actions">
+  <button type="button" id="select-all">Select all</button>
+  <button type="button" id="clear-all">Clear</button>
+</div>
 <form id="options"></form>
 <p id="shore-notice" hidden>Heavy features will only be usable while plugged into a shore power station.</p>
 
@@ -52,7 +58,7 @@ const OPTIONS = [
   { id: 'cooktop',        name: 'Electric cooktop',           price: 100,  group: 'Features', note: '110V AC', load: 'heavy',  requires: ['inverter3000'], requiresOneOf: [['battery400', 'battery600']] },
   { id: 'toasterOven',    name: 'Toaster oven',               price: 100,  group: 'Features', note: '110V AC',  load: 'heavy', requiresOneOf: [['inverter3000'], ['battery400', 'battery600']] },
   { id: 'miniFridge',     name: 'Mini fridge',                price: 100,  group: 'Features', note: '12V DC',  load: 'medium', requiresOneOf: [['battery400', 'battery600']] },
-  { id: 'tv',             name: 'TV',                         price: 50,  group: 'Features', note: '110V AC', load: 'medium', requiresOneOf: [['inverter1000', 'inverter3000'], ['battery200', 'battery400', 'battery600']] },
+  { id: 'tv',             name: 'TV',                         price: 200,  group: 'Features', note: '12V DC', load: 'medium', requiresOneOf: [['battery200', 'battery400', 'battery600']] },
   { id: 'starlink',       name: 'Starlink Mini internet',     price: 200,  group: 'Features', note: '12V DC',  load: 'medium', requiresOneOf: [['battery200', 'battery400', 'battery600']] },
   { id: 'rooftopFan',     name: 'Rooftop vent fan',           price: 200,  group: 'Features', note: '12V DC',  load: 'light', requiresOneOf: [['battery400', 'battery600']] },
   { id: 'propaneStove',   name: 'Propane oven & stovetop',    price: 300, group: 'Features', note: 'propane', load: 'free', requires: ['stoveFan'] },
@@ -92,6 +98,8 @@ const RULES = [
 const byId = Object.fromEntries(OPTIONS.map(o => [o.id, o]));
 const form = document.getElementById('options');
 const shoreNotice = document.getElementById('shore-notice');
+const selectAllButton = document.getElementById('select-all');
+const clearAllButton = document.getElementById('clear-all');
 const selected = new Set();
 
 const conflicts = {};
@@ -136,6 +144,7 @@ function resolve(relax) {
       if (!required.has(dep)) { required.add(dep); apply(byId[dep]); }
     }
     for (const set of spec.requiresOneOf || []) {
+      if (shoreOnly && set.every(id => id === 'inverter1000' || id === 'inverter3000')) continue;
       if (shoreOnly && set.every(id => BANKS.includes(id))) {
         allowed.battery = new Set(BANKS);
         continue;
@@ -190,7 +199,8 @@ function render() {
   // Both non-solar chargers together unlock the smaller bank, so resolve again.
   if (onSet(state).has('shoreCharger') && onSet(state).has('alternator')) state = resolve(true);
   const { required, allowed } = state;
-  const on = onSet(state);
+  const shorePowerSelected = selected.has('shoreCharger');
+  const on = shorePowerSelected ? new Set(selected) : onSet(state);
   shoreNotice.hidden = !selected.has('shoreCharger')
     || selected.has('alternator')
     || SOLAR.some(id => selected.has(id));
@@ -204,10 +214,10 @@ function render() {
 
   for (const o of OPTIONS) {
     const cb = document.getElementById('cb-' + o.id);
-    const blocked = !on.has(o.id) && (outOfRange(o) || conflictsWith(o.id, chosen));
+    const blocked = !shorePowerSelected && !on.has(o.id) && (outOfRange(o) || conflictsWith(o.id, chosen));
     const autoOn = on.has(o.id) && !selected.has(o.id);
     cb.checked = on.has(o.id);
-    cb.disabled = blocked || (required.has(o.id) && !o.domain);
+    cb.disabled = !shorePowerSelected && (blocked || (required.has(o.id) && !o.domain));
     cb.classList.toggle('auto-checked', autoOn);
     document.getElementById('auto-' + o.id).textContent =
       blocked ? '(not compatible with the current selection)'
@@ -230,6 +240,19 @@ form.addEventListener('change', e => {
   } else {
     selected.delete(id);
   }
+  render();
+});
+
+selectAllButton.addEventListener('click', () => {
+  OPTIONS.filter(o => o.group === 'Features').forEach(o => {
+    (conflicts[o.id] || new Set()).forEach(x => selected.delete(x));
+    selected.add(o.id);
+  });
+  render();
+});
+
+clearAllButton.addEventListener('click', () => {
+  selected.clear();
   render();
 });
 
