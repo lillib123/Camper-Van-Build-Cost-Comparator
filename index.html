@@ -52,7 +52,7 @@ const OPTIONS = [
   { id: 'tv',             name: 'TV',                         price: 200,  group: 'Features', note: '110V AC', load: 'medium', requires: ['inverter3000'], requiresOneOf: [['battery400', 'battery600']] },
   { id: 'starlink',       name: 'Starlink Mini internet',     price: 200,  group: 'Features', note: '12V DC',  load: 'medium', requiresOneOf: [['battery200', 'battery400', 'battery600']] },
   { id: 'rooftopFan',     name: 'Rooftop vent fan',           price: 200,  group: 'Features', note: '12V DC',  load: 'light', requiresOneOf: [['battery400', 'battery600']] },
-  { id: 'propaneStove',   name: 'Propane stove & exhaust fan', price: 150, group: 'Features', note: 'propane', load: 'light', requires: ['stoveFan'] },
+  { id: 'propaneStove',   name: 'Propane stove', price: 150, group: 'Features', note: 'propane', load: 'free', requires: ['stoveFan'] },
   { id: 'stoveFan',       name: 'Stove exhaust fan',          price: 100,  group: 'Features', note: '12V DC',  load: 'light', requiresOneOf: [['battery200', 'battery400', 'battery600']] },
   { id: 'runningWater',   name: 'Running water (12V pump)',   price: 100,  group: 'Features', note: '12V DC',  load: 'light', requiresOneOf: [['battery400', 'battery600']] },
   { id: 'usbCharging',    name: 'Phone & laptop charger',     price: 60,   group: 'Features', note: '12V DC',  load: 'light', requiresOneOf: [['battery200', 'battery400', 'battery600']] },
