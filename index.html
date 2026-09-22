@@ -90,9 +90,8 @@ const INCOMPATIBLE = [];
 // Non-solar charging only supports one of microwave / cooktop / AC-heater.
 const SOLAR_ONLY = [SOLAR];
 const RULES = [
-  { when: ['microwave', 'cooktop'],       requiresOneOf: [['battery600'], ...SOLAR_ONLY] },
   { when: ['microwave', 'rooftopAcHeat'], requiresOneOf: SOLAR_ONLY },
-  { when: ['cooktop', 'rooftopAcHeat'],   requiresOneOf: SOLAR_ONLY },
+  { when: ['cooktop', 'rooftopAcHeat'],   requiresOneOf: SOLAR_ONLY }
 ];
 
 const byId = Object.fromEntries(OPTIONS.map(o => [o.id, o]));
