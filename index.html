@@ -221,7 +221,9 @@ function render() {
     cb.classList.toggle('auto-checked', autoOn);
     document.getElementById('auto-' + o.id).textContent =
       blocked ? '(not compatible with the current selection)'
-      : required.has(o.id) && !selected.has(o.id) ? '(required by another option)' : '';
+      : required.has(o.id) && !selected.has(o.id)
+        && (!shorePowerSelected || (o.group !== 'Electrical' && o.group !== 'Charging'))
+        ? '(required by another option)' : '';
     if (on.has(o.id)) {
       total += o.price;
       list.insertAdjacentHTML('beforeend',
