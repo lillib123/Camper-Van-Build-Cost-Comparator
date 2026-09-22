@@ -235,7 +235,7 @@ function render() {
 form.addEventListener('change', e => {
   const id = e.target.dataset.id;
   if (!id) return;
-  if (id === 'shoreCharger' && e.target.checked) {
+  if ((id === 'shoreCharger' || id === 'alternator') && e.target.checked) {
     document.querySelectorAll('#options input:checked').forEach(input => selected.add(input.dataset.id));
   }
   if (e.target.checked) {
