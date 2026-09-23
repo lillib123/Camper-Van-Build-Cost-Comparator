@@ -84,7 +84,7 @@ const SOLAR = ['solar200', 'solar400', 'solar600'];
 const BANKS = ['battery200', 'battery400', 'battery600'];
 
 // Only one member of each set may be on at a time.
-const EXCLUSIVE = [BANKS, SOLAR];
+const EXCLUSIVE = [BANKS, ['inverter1000', 'inverter3000'], SOLAR];
 // Solar and alternator charging are alternative approaches, not mixed.
 const INCOMPATIBLE = [];
 
@@ -195,9 +195,11 @@ const isOutOfRange = (o, allowed) => o.domain && allowed[o.domain] && !allowed[o
   && [...allowed[o.domain]].every(id => (conflicts[o.id] || new Set()).has(id));
 
 function onSet({ required, allowed }) {
-  const on = new Set(required);
+  const chosen = new Set([...selected].filter(id =>
+    !isOutOfRange(byId[id], allowed)));
+  const on = new Set([...required].filter(id => !conflictsWith(id, chosen)));
   for (const o of OPTIONS) {
-    if (selected.has(o.id) && !isOutOfRange(o, allowed) && !conflictsWith(o.id, on)) on.add(o.id);
+    if (chosen.has(o.id) && !conflictsWith(o.id, on)) on.add(o.id);
   }
   return on;
 }
@@ -207,8 +209,8 @@ function render() {
   // Both non-solar chargers together unlock the smaller bank, so resolve again.
   if (onSet(state).has('shoreCharger') && onSet(state).has('alternator')) state = resolve(true);
   const { required, allowed } = state;
-  const shorePowerSelected = selected.has('shoreCharger');
   const on = onSet(state);
+  const shorePowerSelected = on.has('shoreCharger');
   shoreNotice.hidden = !selected.has('shoreCharger')
     || selected.has('alternator')
     || SOLAR.some(id => selected.has(id));
@@ -223,10 +225,10 @@ function render() {
   for (const o of OPTIONS) {
     const cb = document.getElementById('cb-' + o.id);
     const shoreToggle = document.querySelector(`[data-shore-only-for="${o.id}"]`);
-    const blocked = !shorePowerSelected && !on.has(o.id) && (outOfRange(o) || conflictsWith(o.id, chosen));
+    const blocked = !on.has(o.id) && (outOfRange(o) || conflictsWith(o.id, chosen));
     const autoOn = on.has(o.id) && !selected.has(o.id);
     cb.checked = on.has(o.id);
-    cb.disabled = !shorePowerSelected && (blocked || (required.has(o.id) && !o.domain));
+    cb.disabled = blocked || (required.has(o.id) && !o.domain);
     if (shoreToggle) {
       shoreToggle.checked = shoreOnlySelections.has(o.id);
       shoreToggle.disabled = !selected.has(o.id);
@@ -257,7 +259,7 @@ form.addEventListener('change', e => {
   const id = e.target.dataset.id;
   if (!id) return;
   if ((id === 'shoreCharger' || id === 'alternator') && e.target.checked) {
-    document.querySelectorAll('#options input:checked').forEach(input => selected.add(input.dataset.id));
+    document.querySelectorAll('#options input[data-id]:checked').forEach(input => selected.add(input.dataset.id));
   }
   if (e.target.checked) {
     (conflicts[id] || new Set()).forEach(x => selected.delete(x));
