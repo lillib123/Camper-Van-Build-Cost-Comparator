@@ -271,19 +271,23 @@ form.addEventListener('change', e => {
   render();
 });
 
-selectAllButton.addEventListener('click', () => {
-  OPTIONS.filter(o => o.group === 'Features').forEach(o => {
-    (conflicts[o.id] || new Set()).forEach(x => selected.delete(x));
-    selected.add(o.id);
+if (selectAllButton) {
+  selectAllButton.addEventListener('click', () => {
+    OPTIONS.filter(o => o.group === 'Features').forEach(o => {
+      (conflicts[o.id] || new Set()).forEach(x => selected.delete(x));
+      selected.add(o.id);
+    });
+    render();
   });
-  render();
-});
+}
 
-clearAllButton.addEventListener('click', () => {
-  selected.clear();
-  shoreOnlySelections.clear();
-  render();
-});
+if (clearAllButton) {
+  clearAllButton.addEventListener('click', () => {
+    selected.clear();
+    shoreOnlySelections.clear();
+    render();
+  });
+}
 
 render();
 </script>
