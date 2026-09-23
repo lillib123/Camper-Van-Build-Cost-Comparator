@@ -11,6 +11,7 @@
   legend { font-weight: 600; padding: 0 .4rem; }
   .opt { display: flex; align-items: center; gap: .5rem; padding: .35rem 0; }
   .opt label { flex: 1; }
+  .shore-toggle { display: block; margin-top: .2rem; font-size: .8rem; color: #555; }
   .price { color: #555; font-variant-numeric: tabular-nums; }
   .auto { font-size: .8rem; color: #b06000; }
   input[type=checkbox] { accent-color: #06c; }
@@ -53,8 +54,8 @@
 // constraint can choose between; EXCLUSIVE/INCOMPATIBLE below say which of
 // them can't be combined.
 const OPTIONS = [
+  { id: 'rooftopAcHeat110',  name: 'Rooftop AC, heater & fan combo (AC & heat run on shore power)',  price: 800, group: 'Features', note: '110V AC', load: 'light', requires: ['shoreCharger'], requiresOneOf: [['inverter1000', 'inverter3000'], ['battery200', 'battery400', 'battery600']] },
   { id: 'rooftopAcHeat12',  name: 'Rooftop AC & heater combo (runs on battery)',  price: 800, group: 'Features', note: '12V DC',  load: 'heavy',  requiresOneOf: [['battery400', 'battery600']] },
-  { id: 'rooftopAcHeat110',  name: 'Rooftop AC, heater & fan combo (AC & heat run on shore power)',  price: 800, group: 'Features', note: '110V AC', load: 'heavy', requires: ['shoreCharger'], requiresOneOf: [['inverter1000', 'inverter3000'], ['battery200', 'battery400', 'battery600']] },
   { id: 'microwave',      name: 'Microwave',                  price: 50,   group: 'Features', note: '110V AC', load: 'heavy',  requires: ['inverter3000'], requiresOneOf: [['battery400', 'battery600']] },
   { id: 'cooktop',        name: 'Electric cooktop',           price: 100,  group: 'Features', note: '110V AC', load: 'heavy',  requires: ['inverter3000'], requiresOneOf: [['battery400', 'battery600']] },
   { id: 'toasterOven',    name: 'Toaster oven',               price: 100,  group: 'Features', note: '110V AC',  load: 'heavy', requiresOneOf: [['inverter3000'], ['battery400', 'battery600']] },
@@ -101,6 +102,7 @@ const shoreNotice = document.getElementById('shore-notice');
 const selectAllButton = document.getElementById('select-all');
 const clearAllButton = document.getElementById('clear-all');
 const selected = new Set();
+const shoreOnlySelections = new Set();
 
 const conflicts = {};
 const addConflict = (a, b) => {
@@ -121,7 +123,7 @@ for (const group of [...new Set(OPTIONS.map(o => o.group))]) {
     row.className = 'opt';
     row.innerHTML = `
       <input type="checkbox" id="cb-${o.id}" data-id="${o.id}">
-      <label for="cb-${o.id}">${o.name}${o.note ? ` <span class="note">[${o.note}]</span>` : ''}${o.load ? ` <span class="load load-${o.load}">${LOAD_LABEL[o.load]}</span>` : ''} <span class="auto" id="auto-${o.id}"></span></label>
+      <label for="cb-${o.id}">${o.name}${o.note ? ` <span class="note">[${o.note}]</span>` : ''}${o.load ? ` <span class="load load-${o.load}">${LOAD_LABEL[o.load]}</span>` : ''} <span class="auto" id="auto-${o.id}"></span>${o.load === 'heavy' && o.note === '110V AC' ? `<span class="shore-toggle"><input type="checkbox" data-shore-only-for="${o.id}"> Runs only on shore power</span>` : ''}</label>
       <span class="price">$${o.price.toLocaleString()}</span>`;
     fs.appendChild(row);
   }
@@ -134,27 +136,33 @@ const domainMembers = d => OPTIONS.filter(o => o.domain === d).map(o => o.id);
 function resolve(relax) {
   const required = new Set();
   const allowed = {};   // domain -> Set of ids still permitted
+  const shoreOnlyOptionSelected = [...shoreOnlySelections].some(id => selected.has(id));
   const shoreOnly = selected.has('shoreCharger')
     && !selected.has('alternator')
     && !SOLAR.some(id => selected.has(id));
 
-  const apply = spec => {
+  const apply = (spec, shoreOnlyOption = false) => {
     for (const dep of spec.requires || []) {
-      if (shoreOnly && dep === 'inverter3000') continue;
-      if (!required.has(dep)) { required.add(dep); apply(byId[dep]); }
+      if ((shoreOnly || shoreOnlyOption) && dep === 'inverter3000') continue;
+      if (!required.has(dep)) { required.add(dep); apply(byId[dep], shoreOnlyOption); }
     }
     for (const set of spec.requiresOneOf || []) {
-      if (shoreOnly && set.every(id => id === 'inverter1000' || id === 'inverter3000')) continue;
-      if (shoreOnly && set.every(id => BANKS.includes(id))) {
+      if ((shoreOnly || shoreOnlyOption) && set.every(id => id === 'inverter1000' || id === 'inverter3000')) continue;
+      if ((shoreOnly || shoreOnlyOption) && set.every(id => BANKS.includes(id))) {
         allowed.battery = new Set(BANKS);
         continue;
       }
+      if (shoreOnlyOption && set.every(id => SOLAR.includes(id))) continue;
       const d = byId[set[0]].domain;
       const cur = allowed[d] || new Set(domainMembers(d));
       allowed[d] = new Set(set.filter(x => cur.has(x)));
     }
   };
-  selected.forEach(id => apply(byId[id]));
+  selected.forEach(id => {
+    const shoreOnlyOption = shoreOnlySelections.has(id);
+    if (shoreOnlyOption) required.add('shoreCharger');
+    apply(byId[id], shoreOnlyOption);
+  });
   if (!shoreOnly) RULES.filter(r => r.when.every(id => selected.has(id))).forEach(apply);
 
   // Shore plus alternator charging keeps one size smaller bank topped up.
@@ -200,7 +208,7 @@ function render() {
   if (onSet(state).has('shoreCharger') && onSet(state).has('alternator')) state = resolve(true);
   const { required, allowed } = state;
   const shorePowerSelected = selected.has('shoreCharger');
-  const on = shorePowerSelected ? new Set(selected) : onSet(state);
+  const on = onSet(state);
   shoreNotice.hidden = !selected.has('shoreCharger')
     || selected.has('alternator')
     || SOLAR.some(id => selected.has(id));
@@ -214,10 +222,15 @@ function render() {
 
   for (const o of OPTIONS) {
     const cb = document.getElementById('cb-' + o.id);
+    const shoreToggle = document.querySelector(`[data-shore-only-for="${o.id}"]`);
     const blocked = !shorePowerSelected && !on.has(o.id) && (outOfRange(o) || conflictsWith(o.id, chosen));
     const autoOn = on.has(o.id) && !selected.has(o.id);
     cb.checked = on.has(o.id);
     cb.disabled = !shorePowerSelected && (blocked || (required.has(o.id) && !o.domain));
+    if (shoreToggle) {
+      shoreToggle.checked = shoreOnlySelections.has(o.id);
+      shoreToggle.disabled = !selected.has(o.id);
+    }
     cb.classList.toggle('auto-checked', autoOn);
     document.getElementById('auto-' + o.id).textContent =
       blocked ? '(not compatible with the current selection)'
@@ -234,6 +247,13 @@ function render() {
 }
 
 form.addEventListener('change', e => {
+  const shoreOnlyFor = e.target.dataset.shoreOnlyFor;
+  if (shoreOnlyFor) {
+    if (e.target.checked) shoreOnlySelections.add(shoreOnlyFor);
+    else shoreOnlySelections.delete(shoreOnlyFor);
+    render();
+    return;
+  }
   const id = e.target.dataset.id;
   if (!id) return;
   if ((id === 'shoreCharger' || id === 'alternator') && e.target.checked) {
@@ -244,6 +264,7 @@ form.addEventListener('change', e => {
     selected.add(id);
   } else {
     selected.delete(id);
+    shoreOnlySelections.delete(id);
   }
   render();
 });
@@ -258,6 +279,7 @@ selectAllButton.addEventListener('click', () => {
 
 clearAllButton.addEventListener('click', () => {
   selected.clear();
+  shoreOnlySelections.clear();
   render();
 });
 
