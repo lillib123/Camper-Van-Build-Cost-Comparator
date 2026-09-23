@@ -65,7 +65,7 @@ const OPTIONS = [
   { id: 'rooftopFan',     name: 'Rooftop vent fan',           price: 200,  group: 'Features', note: '12V DC',  load: 'light', requiresOneOf: [['battery200', 'battery400', 'battery600']] },
   { id: 'propaneStove',   name: 'Propane oven & stovetop',    price: 300, group: 'Features', note: 'propane', load: 'free', requires: ['stoveFan'] },
   { id: 'stoveFan',       name: 'Stove exhaust fan',          price: 100,  group: 'Features', note: '12V DC',  load: 'light', requiresOneOf: [['battery200', 'battery400', 'battery600']] },
-  { id: 'runningWater',   name: 'Running water (12V pump)',   price: 100,  group: 'Features', note: '12V DC',  load: 'light', requiresOneOf: [['battery400', 'battery600']] },
+  { id: 'runningWater',   name: 'Running water (12V pump)',   price: 100,  group: 'Features', note: '12V DC',  load: 'light', requiresOneOf: [['battery200', 'battery400', 'battery600']] },
   { id: 'usbCharging',    name: 'Phone & laptop charger',     price: 40,   group: 'Features', note: '12V DC',  load: 'light', requiresOneOf: [['battery200', 'battery400', 'battery600']] },
   { id: 'lighting',       name: 'LED interior lighting',      price: 40,   group: 'Features', note: '12V DC',  load: 'free', requiresOneOf: [['battery200', 'battery400', 'battery600']] },
   { id: 'battery200',     name: '200Ah LiFePO4 bank (self-heating)', price: 940,  group: 'Electrical', domain: 'battery', requiresOneOf: [['shoreCharger', 'alternator', 'solar200', 'solar400', 'solar600']] },
